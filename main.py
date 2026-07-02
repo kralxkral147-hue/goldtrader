@@ -4,7 +4,6 @@ import requests
 import threading
 from flask import Flask
 
-# Flask web sunucusu (Render'ı kandırmak ve ücretsiz kullanmak için)
 app = Flask(__name__)
 
 @app.route('/')
@@ -17,18 +16,18 @@ def health():
 
 # TELEGRAM VE STRATEJİ AYARLARI
 TOKEN = "7349182394:AAH_fX39Y2kZlzM4kO9wPlR2X7mNq1uV8zo"
-CHAT_ID = "-5303003876"  # Grup ID'niz hazır
+CHAT_ID = "-5303003876"
 
-# RSI için fiyat havuzu
 fiyatlar = []
 
 def telegram_mesaj_gonder(mesaj):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": mesaj}
     try:
-        requests.post(url, json=payload)
+        r = requests.post(url, json=payload)
+        print(f"Telegram Gönderim Durumu: {r.status_code}", flush=True)
     except Exception as e:
-        print(f"Telegram hatasi: {e}")
+        print(f"Telegram hatasi: {e}", flush=True)
 
 def rsi_hesapla(seri, periyot=14):
     if len(seri) <= periyot:
@@ -52,47 +51,44 @@ def rsi_hesapla(seri, periyot=14):
     rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))
 
-# Ana Bot Döngüsü (Arka planda çalışacak)
 def bot_ana_dongu():
-    print("Bot döngüsü başlatıldı...")
-    time.sleep(5)  # Sunucunun tam oturması için kısa bir bekleme
+    print("Bot ana döngüsü ilk satır tetiklendi...", flush=True)
+    time.sleep(3)
     telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu 7/24 Sunucuda Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
     
     while True:
         try:
-            # Altın fiyatını çekme (XAU/USD)
-            response = requests.get("https://api.binance.com/api/3/ticker/price?symbol=XAUUSDT")
+            # Binance yerine daha garanti global altın fiyatı veren ücretsiz API (PAXG/USDT Altına endekslidir)
+            response = requests.get("https://api.binance.com/api/3/ticker/price?symbol=PAXGUSDT")
             if response.status_code == 200:
                 data = response.json()
                 anlik_fiyat = float(data["price"])
                 fiyatlar.append(anlik_fiyat)
                 
-                # Belleğin şişmemesi için son 100 veriyi tutalım
                 if len(fiyatlar) > 100:
                     fiyatlar.pop(0)
                 
-                print(f"Anlık Fiyat: {anlik_fiyat} | Havuzdaki Veri: {len(fiyatlar)}")
+                print(f"Anlık Altın (PAXG) Fiyatı: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
                 
-                # RSI hesaplama ve Sinyal Kontrolü
                 rsi = rsi_hesapla(fiyatlar)
                 if rsi is not None:
-                    print(f"Güncel RSI: {rsi:.2f}")
+                    print(f"Güncel RSI: {rsi:.2f}", flush=True)
                     if rsi >= 67:
-                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Fiyat: {anlik_fiyat}\n📈 RSI: {rsi:.2f}\n⚠️ Düzeltme gelebilir, Satış yönlü demo test edilebilir!")
+                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Fiyat: {anlik_fiyat}\n📈 RSI: {rsi:.2f}")
                     elif rsi <= 33:
-                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Fiyat: {anlik_fiyat}\n📉 RSI: {rsi:.2f}\n⚠️ Tepki yükselişi gelebilir, Alış yönlü demo test edilebilir!")
+                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Fiyat: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
+            else:
+                print(f"API Hatası, Kod: {response.status_code}", flush=True)
             
         except Exception as e:
-            print(f"Döngü hatası: {e}")
+            print(f"Döngü hatası: {e}", flush=True)
             
-        time.sleep(20) # 20 saniyede bir kontrol
+        time.sleep(20)
 
 if __name__ == "__main__":
-    # Bot döngüsünü ana web sunucusunu kilitlemesin diye ayrı bir iş parçacığında (Thread) başlatıyoruz
     t = threading.Thread(target=bot_ana_dongu)
     t.daemon = True
     t.start()
     
-    # Render'ın istediği portu alıp web sunucusunu ayağa kaldırıyoruz
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
