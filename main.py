@@ -8,7 +8,7 @@ import threading
 
 # Senin BotFather'dan aldığın Token ve Chat ID bilgilerin koda gömüldü kanka
 TELEGRAM_TOKEN = "8690793145:AAF-pOMchclA_M090MtWmyOqiS8YkfSSPDY"
-CHAT_ID = "-1005303003876"
+CHAT_ID = "-5303003876"
 
 
 fiyat_gecmisi = []
