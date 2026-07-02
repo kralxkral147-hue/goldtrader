@@ -52,33 +52,36 @@ def rsi_hesapla(seri, periyot=14):
     return 100 - (100 / (1 + rs))
 
 def bot_ana_dongu():
-    print("Bot ana döngüsü ilk satır tetiklendi...", flush=True)
+    print("Bot ana döngüsü gerçek XAUUSD ile başlatılıyor...", flush=True)
     time.sleep(3)
-    telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu 7/24 Sunucuda Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
+    telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu Gerçek Forex XAU/USD Verisiyle Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
     
     while True:
         try:
-            # Binance yerine daha garanti global altın fiyatı veren ücretsiz API (PAXG/USDT Altına endekslidir)
-            response = requests.get("https://api.binance.com/api/3/ticker/price?symbol=PAXGUSDT")
+            # Gerçek Forex Canlı XAU/USD Fiyat API'si
+            url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d"
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            response = requests.get(url, headers=headers)
+            
             if response.status_code == 200:
                 data = response.json()
-                anlik_fiyat = float(data["price"])
+                anlik_fiyat = float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
                 fiyatlar.append(anlik_fiyat)
                 
                 if len(fiyatlar) > 100:
                     fiyatlar.pop(0)
                 
-                print(f"Anlık Altın (PAXG) Fiyatı: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
+                print(f"Canlı Forex XAUUSD Fiyatı: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
                 
                 rsi = rsi_hesapla(fiyatlar)
                 if rsi is not None:
                     print(f"Güncel RSI: {rsi:.2f}", flush=True)
                     if rsi >= 67:
-                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Fiyat: {anlik_fiyat}\n📈 RSI: {rsi:.2f}")
+                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Forex XAUUSD: {anlik_fiyat}\n📈 RSI: {rsi:.2f}\n⚠️ Satış yönlü demo test edilebilir!")
                     elif rsi <= 33:
-                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Fiyat: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
+                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Forex XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}\n⚠️ Alış yönlü demo test edilebilir!")
             else:
-                print(f"API Hatası, Kod: {response.status_code}", flush=True)
+                print(f"Yahoo Finance API Hatası, Kod: {response.status_code}", flush=True)
             
         except Exception as e:
             print(f"Döngü hatası: {e}", flush=True)
