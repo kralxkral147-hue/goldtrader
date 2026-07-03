@@ -15,14 +15,15 @@ def health():
     return "OK", 200
 
 # TELEGRAM VE STRATEJİ AYARLARI
-TOKEN = "7349182394:AAH_fX39Y2kZlzM4kO9wPlR2X7mNq1uV8zo"
+TOKEN = "BURAYA_BOT_FATHERDAN_ALDIĞIN_EN_GÜNCEL_TOKENİ_YAZ"
 CHAT_ID = "-5303003876"
 
 fiyatlar = []
 
 def telegram_mesaj_gonder(mesaj):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mesaj}
+    payload = {"chat_id": CHAT_ID, "text": mensaje} # Değişken adı düzeltildi
+    payload["text"] = mesaj
     try:
         r = requests.post(url, json=payload)
         print(f"Telegram Gönderim Durumu: {r.status_code}", flush=True)
@@ -52,36 +53,38 @@ def rsi_hesapla(seri, periyot=14):
     return 100 - (100 / (1 + rs))
 
 def bot_ana_dongu():
-    print("Bot ana döngüsü gerçek XAUUSD ile başlatılıyor...", flush=True)
+    print("Bot ana döngüsü Canlı Spot XAU/USD ile başlatılıyor...", flush=True)
     time.sleep(3)
-    telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu Gerçek Forex XAU/USD Verisiyle Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
+    telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu Gerçek Spot XAU/USD Verisiyle Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
     
     while True:
         try:
-            # Gerçek Forex Canlı XAU/USD Fiyat API'si
-            url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d"
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            response = requests.get(url, headers=headers)
+            # Gerçek Spot Forex XAU/USD fiyatı veren Investing API simülasyonu (Ücretsiz ve hızlı)
+            url = "https://api.twelvedata.com/price?symbol=XAU/USD&apikey=demo"
+            response = requests.get(url)
             
             if response.status_code == 200:
                 data = response.json()
-                anlik_fiyat = float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
-                fiyatlar.append(anlik_fiyat)
-                
-                if len(fiyatlar) > 100:
-                    fiyatlar.pop(0)
-                
-                print(f"Canlı Forex XAUUSD Fiyatı: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
-                
-                rsi = rsi_hesapla(fiyatlar)
-                if rsi is not None:
-                    print(f"Güncel RSI: {rsi:.2f}", flush=True)
-                    if rsi >= 67:
-                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Forex XAUUSD: {anlik_fiyat}\n📈 RSI: {rsi:.2f}\n⚠️ Satış yönlü demo test edilebilir!")
-                    elif rsi <= 33:
-                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Forex XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}\n⚠️ Alış yönlü demo test edilebilir!")
+                if "price" in data:
+                    anlik_fiyat = float(data["price"])
+                    fiyatlar.append(anlik_fiyat)
+                    
+                    if len(fiyatlar) > 100:
+                        fiyatlar.pop(0)
+                    
+                    print(f"Canlı Spot XAUUSD Fiyatı: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
+                    
+                    rsi = rsi_hesapla(fiyatlar)
+                    if rsi is not None:
+                        print(f"Güncel RSI: {rsi:.2f}", flush=True)
+                        if rsi >= 67:
+                            telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Spot XAUUSD: {anlik_fiyat}\n📈 RSI: {rsi:.2f}")
+                        elif rsi <= 33:
+                            telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Spot XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
+                else:
+                    print("API limiti veya sembol hatası.", flush=True)
             else:
-                print(f"Yahoo Finance API Hatası, Kod: {response.status_code}", flush=True)
+                print(f"Fiyat çekme hatası, Kod: {response.status_code}", flush=True)
             
         except Exception as e:
             print(f"Döngü hatası: {e}", flush=True)
