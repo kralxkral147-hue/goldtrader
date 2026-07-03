@@ -8,13 +8,13 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot XAU/USD Gercek Spot Motoru Aktif!", 200
+    return "Bot Kesintisiz Spot XAU/USD Motoru Aktif!", 200
 
 @app.route('/healthz')
 def health():
     return "OK", 200
 
-# YENİ TELEGRAM VE STRATEJİ AYARLARI
+# TELEGRAM VE STRATEJİ AYARLARI
 TOKEN = "8690793145:AAE7Z5CzLByrwz9WQZ2eWyCreat4p_J-8VE"
 CHAT_ID = "-5303003876"
 
@@ -51,23 +51,23 @@ def rsi_hesapla(seri, periyot=14):
     return 100 - (100 / (1 + rs))
 
 def bot_ana_dongu():
-    print("Bot ana döngüsü GERÇEK ANLIK SPOT XAU/USD motoru ile başlatıldı...", flush=True)
+    print("Bot ana döngüsü KESİNTİSİZ SPOT MOTOR ile başlatıldı...", flush=True)
     time.sleep(3)
     
-    # Akıllı Sinyal Kilidi: Üst üste ters/hatalı sinyalleri engeller
     son_sinyal = None
     
     while True:
         try:
-            # Canlı Forex Spot Altın (XAU/USD=X) doğrudan veri akışı
-            url = "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval=1m&range=1d"
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            response = requests.get(url, headers=headers, timeout=10)
+            # Kesintisiz ve stabil çalışan alternatif küresel döviz/metal API'si
+            url = "https://open.er-api.com/v6/latest/USD"
+            response = requests.get(url, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                # Tamamen makassız, aracı kurumsuz net spot fiyat
-                anlik_fiyat = round(float(data["chart"]["result"][0]["meta"]["regularMarketPrice"]), 2)
+                # API, 1 doların kaç ons altın ettiğini verir (XAU). 
+                # Biz tam tersini alarak 1 ons altının kaç dolar olduğunu (XAU/USD) buluyoruz.
+                ons_altin_orani = float(data["rates"]["XAU"])
+                anlik_fiyat = round(1 / ons_altin_orani, 2)
                 
                 fiyatlar.append(anlik_fiyat)
                 
@@ -80,26 +80,22 @@ def bot_ana_dongu():
                 if rsi is not None:
                     print(f"Güncel RSI: {rsi:.2f}", flush=True)
                     
-                    # RSI 67 üstü ve önceki sinyal SELL değilse tetikle
                     if rsi >= 67 and son_sinyal != "SELL":
                         telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Canlı Spot XAUUSD: {anlik_fiyat}\n📈 RSI: {rsi:.2f}")
                         son_sinyal = "SELL"
                     
-                    # RSI 33 altı ve önceki sinyal BUY değilse tetikle
                     elif rsi <= 33 and son_sinyal != "BUY":
                         telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Canlı Spot XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
                         son_sinyal = "BUY"
                         
-                    # RSI normale döndüğünde kilidi aç, yeni sinyale hazırlık yap
                     elif 43 <= rsi <= 57:
                         son_sinyal = None
             else:
-                print(f"Spot fiyat çekilemedi, durum kodu: {response.status_code}", flush=True)
+                print(f"Alternatif API hatası, durum kodu: {response.status_code}", flush=True)
                 
         except Exception as e:
-            print(f"Veri akışı yenileniyor... Spot XAU/USD bekleniyor.", flush=True)
+            print(f"Bağlantı yenileniyor... Veri bekleniyor.", flush=True)
             
-        # 25 saniyede bir verileri tazeleyip stabil analiz yapar
         time.sleep(25)
 
 if __name__ == "__main__":
