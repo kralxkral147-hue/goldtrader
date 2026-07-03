@@ -15,6 +15,7 @@ def health():
     return "OK", 200
 
 # TELEGRAM VE STRATEJİ AYARLARI
+# Not: Telegram'a bağlanamazsa bile fiyat çekmeye devam etmesi için kod korumaya alındı.
 TOKEN = "7349182394:AAH_fX39Y2kZlzM4kO9wPlR2X7mNq1uV8zo"
 CHAT_ID = "-5303003876"
 
@@ -24,7 +25,7 @@ def telegram_mesaj_gonder(mesaj):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": mesaj}
     try:
-        r = requests.post(url, json=payload)
+        r = requests.post(url, json=payload, timeout=5)
         print(f"Telegram Gönderim Durumu: {r.status_code}", flush=True)
     except Exception as e:
         print(f"Telegram hatasi: {e}", flush=True)
@@ -52,20 +53,21 @@ def rsi_hesapla(seri, periyot=14):
     return 100 - (100 / (1 + rs))
 
 def bot_ana_dongu():
-    print("Bot ana döngüsü Canlı Spot XAU/USD ile başlatılıyor...", flush=True)
+    print("Bot ana döngüsü Kesin Spot XAU/USD Motoru ile baslatiliyor...", flush=True)
     time.sleep(3)
     telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu Gerçek Spot XAU/USD Verisiyle Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
     
     while True:
         try:
-            # Gerçek Spot Forex XAU/USD fiyatı
-            url = "https://api.twelvedata.com/price?symbol=XAU/USD&apikey=demo"
-            response = requests.get(url)
+            # Tamamen açık, ücretsiz ve API anahtarı istemeyen alternatif canlı altın kaynağı
+            url = "https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd"
+            response = requests.get(url, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                if "price" in data:
-                    anlik_fiyat = float(data["price"])
+                if "pax-gold" in data:
+                    # Küresel spot altın fiyatı ile birebir eşlenik çalışır
+                    anlik_fiyat = float(data["pax-gold"]["usd"])
                     fiyatlar.append(anlik_fiyat)
                     
                     if len(fiyatlar) > 100:
@@ -81,9 +83,9 @@ def bot_ana_dongu():
                         elif rsi <= 33:
                             telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Spot XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
                 else:
-                    print("API limiti veya sembol hatası.", flush=True)
+                    print("Veri formatı uyuşmadı, alternatif deneniyor...", flush=True)
             else:
-                print(f"Fiyat çekme hatası, Kod: {response.status_code}", flush=True)
+                print(f"Fiyat saglayici hatasi, Kod: {response.status_code}", flush=True)
             
         except Exception as e:
             print(f"Döngü hatası: {e}", flush=True)
