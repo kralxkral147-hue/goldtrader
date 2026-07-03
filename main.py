@@ -15,15 +15,14 @@ def health():
     return "OK", 200
 
 # TELEGRAM VE STRATEJİ AYARLARI
-TOKEN = "8690793145:AAF-pOMchclA_M090MtWmyOqiS8YkfSSPDY"
+TOKEN = "7349182394:AAH_fX39Y2kZlzM4kO9wPlR2X7mNq1uV8zo"
 CHAT_ID = "-5303003876"
 
 fiyatlar = []
 
 def telegram_mesaj_gonder(mesaj):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mensaje} # Değişken adı düzeltildi
-    payload["text"] = mesaj
+    payload = {"chat_id": CHAT_ID, "text": mesaj}
     try:
         r = requests.post(url, json=payload)
         print(f"Telegram Gönderim Durumu: {r.status_code}", flush=True)
@@ -59,7 +58,7 @@ def bot_ana_dongu():
     
     while True:
         try:
-            # Gerçek Spot Forex XAU/USD fiyatı veren Investing API simülasyonu (Ücretsiz ve hızlı)
+            # Gerçek Spot Forex XAU/USD fiyatı
             url = "https://api.twelvedata.com/price?symbol=XAU/USD&apikey=demo"
             response = requests.get(url)
             
