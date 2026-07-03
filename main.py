@@ -8,23 +8,21 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot aktif ve calisiyor!", 200
+    return "Bot XAU/USD Gercek Spot Motoru Aktif!", 200
 
 @app.route('/healthz')
 def health():
     return "OK", 200
 
-# TELEGRAM VE STRATEJİ AYARLARI
+# YENİ TELEGRAM VE STRATEJİ AYARLARI
 TOKEN = "8690793145:AAE7Z5CzLByrwz9WQZ2eWyCreat4p_J-8VE"
 CHAT_ID = "-5303003876"
 
 fiyatlar = []
 
 def telegram_mesaj_gonder(mesaj):
-    # Eğer token hatalıysa (401) botun tüm sistemini kilitlemesin diye korumaya alındı
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mesaj} # Değişken adı düzeltildi
-    payload["text"] = mesaj
+    payload = {"chat_id": CHAT_ID, "text": mesaj}
     try:
         requests.post(url, json=payload, timeout=5)
     except:
@@ -53,44 +51,56 @@ def rsi_hesapla(seri, periyot=14):
     return 100 - (100 / (1 + rs))
 
 def bot_ana_dongu():
-    print("Bot ana döngüsü Gerçek Spot XAUUSD Motoru ile başlatıldı...", flush=True)
+    print("Bot ana döngüsü GERÇEK ANLIK SPOT XAU/USD motoru ile başlatıldı...", flush=True)
     time.sleep(3)
-    telegram_mesaj_gonder("🚀 GoldHunter Akıllı Scalp Botu Gerçek Spot XAU/USD Verisiyle Başlatıldı!\n\n📊 RSI ve Fiyat takibi aktif.")
+    
+    # Akıllı Sinyal Kilidi: Üst üste ters/hatalı sinyalleri engeller
+    son_sinyal = None
     
     while True:
         try:
-            # Safari sekmenizdeki 4185 spot forex fiyatıyla birebir eşleşen Yahoo Spot Gold API
-            url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d"
+            # Canlı Forex Spot Altın (XAU/USD=X) doğrudan veri akışı
+            url = "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval=1m&range=1d"
             headers = {'User-Agent': 'Mozilla/5.0'}
             response = requests.get(url, headers=headers, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                anlik_fiyat = float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
+                # Tamamen makassız, aracı kurumsuz net spot fiyat
+                anlik_fiyat = round(float(data["chart"]["result"][0]["meta"]["regularMarketPrice"]), 2)
                 
-                # Fiyatı senin Safari ekranına kusursuz eşitlemek için vadeli makas düzeltmesi (Safariye kitler)
-                # Eğer fiyatta küçük bir fark kalırsa burası otomatik dengeler
                 fiyatlar.append(anlik_fiyat)
                 
                 if len(fiyatlar) > 100:
                     fiyatlar.pop(0)
                 
-                print(f"Canlı Spot XAUUSD Fiyatı: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
+                print(f"Canlı SPOT XAUUSD: {anlik_fiyat} | Havuz: {len(fiyatlar)}", flush=True)
                 
                 rsi = rsi_hesapla(fiyatlar)
                 if rsi is not None:
                     print(f"Güncel RSI: {rsi:.2f}", flush=True)
-                    if rsi >= 67:
-                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Spot XAUUSD: {anlik_fiyat}\n📈 RSI: {rsi:.2f}")
-                    elif rsi <= 33:
-                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Spot XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
+                    
+                    # RSI 67 üstü ve önceki sinyal SELL değilse tetikle
+                    if rsi >= 67 and son_sinyal != "SELL":
+                        telegram_mesaj_gonder(f"🔴 SELL (AŞIRI ALIM)\n💰 Canlı Spot XAUUSD: {anlik_fiyat}\n📈 RSI: {rsi:.2f}")
+                        son_sinyal = "SELL"
+                    
+                    # RSI 33 altı ve önceki sinyal BUY değilse tetikle
+                    elif rsi <= 33 and son_sinyal != "BUY":
+                        telegram_mesaj_gonder(f"🟢 BUY (AŞIRI SATIM)\n💰 Canlı Spot XAUUSD: {anlik_fiyat}\n📉 RSI: {rsi:.2f}")
+                        son_sinyal = "BUY"
+                        
+                    # RSI normale döndüğünde kilidi aç, yeni sinyale hazırlık yap
+                    elif 43 <= rsi <= 57:
+                        son_sinyal = None
             else:
-                print(f"Fiyat çekilemedi, durum kodu: {response.status_code}", flush=True)
+                print(f"Spot fiyat çekilemedi, durum kodu: {response.status_code}", flush=True)
                 
         except Exception as e:
-            print(f"Bağlantı yenileniyor... Fiyat bekleniyor.", flush=True)
+            print(f"Veri akışı yenileniyor... Spot XAU/USD bekleniyor.", flush=True)
             
-        time.sleep(25) # 429 hatası yememek için süreyi 25 saniyeye çektik, sunucu rahatladı.
+        # 25 saniyede bir verileri tazeleyip stabil analiz yapar
+        time.sleep(25)
 
 if __name__ == "__main__":
     t = threading.Thread(target=bot_ana_dongu)
