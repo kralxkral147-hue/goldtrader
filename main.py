@@ -23,7 +23,7 @@ fiyatlar = []
 def telegram_mesaj_gonder(mesaj):
     # Eğer token hatalıysa (401) botun tüm sistemini kilitlemesin diye korumaya alındı
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mensaje} # Değişken adı düzeltildi
+    payload = {"chat_id": CHAT_ID, "text": mesaj} # Değişken adı düzeltildi
     payload["text"] = mesaj
     try:
         requests.post(url, json=payload, timeout=5)
